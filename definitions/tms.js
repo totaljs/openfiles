@@ -1,0 +1,1 @@
+NEWPUBLISH('upload', 'data:Object');

@@ -1,0 +1,76 @@
+<div data---="box__common.form__if:~PATH~;icon:fa fa-database;reload:?/reload;scrollbar:0;submit:?/submit;width:1200" class="hidden" data-scope="~PATH~">
+	<nav>
+		<button class="exec" data-exec="?/remove" data-bind="?.checked__enabled:value && value.length" disabled><i class="far fa-trash-alt red"></i>@(Remove)</button>
+	</nav>
+	<div>
+		<div data---="datagrid__?.items__margin:0;button:?/button;height:.ui-box-body;noborder:1;exec:?/filter;pagination:false;checked:?.checked" class="invisible">
+			<script type="text/plain">
+			[
+				{ name: 'name', text: '@(Name)', width: 250, class: 'gray' },
+				{ name: 'ext', text: '@(Extension)', width: 120, align: 1, monospace: 1, class: 'b' },
+				{ name: 'type', text: '@(Content-Type)', width: 200, monospace: 1, colorize: 1 },
+				{ name: 'size', text: '@(Size)', type: 'number', width: 100, template: '{{ size | filesize }}' },
+				{ name: 'width', text: '@(Width)', type: 'number', width: 100 },
+				{ name: 'height', text: '@(Height)', type: 'number', width: 100 },
+				{ name: 'date', text: '@(Date)', align: 1, template: '{{ date | format(\'[ts]\') }}', type: 'date' },
+				{ type: 'controls', template: '<button name="download"><i class="fa fa-cloud-download"></i><span>@(Download)</span></button><button name="remove"><i class="fa fa-trash-o red"></i></button>' }
+			]
+			</script>
+		</div>
+	</div>
+	<nav>
+		<button name="cancel" style="width:100%">@(Close)</button>
+	</nav>
+</div>
+
+<script>
+
+	PLUGIN('~PATH~', function(exports) {
+
+		exports.reload = function(com) {
+			var model = exports.model;
+			var id = model ? model.id : null;
+			com.reconfigure({ title: '@(Browse files: {0})'.format(id) });
+		};
+
+		exports.filter = function(type, filter, sort, page) {
+			var model = exports.model;
+			if (!filter)
+				filter = {};
+			filter.sort = sort;
+			filter.page = page;
+			TAPI(QUERIFY('files_browse/{id} @showloading'.arg(model), filter), '?.items @hideloading');
+		};
+
+		exports.button = function(name, row) {
+			switch (name) {
+				case 'download':
+					var download = !({ jpg: 1, pdf: 1, png: 1, gif: 1, jpeg: 1, webp: 1, mp4: 1, mp3: 1, ogg: 1, tiff: 1, svg: 1 }[row.ext]);
+					W.open(row.url + (download ? '?download=1' : ''));
+					break;
+				case 'remove':
+					SETTER('approve/show', '@(Are you sure you want to remove selected file <b>"{0}"</b>?)'.format(row.name.encode()), '"far fa-trash-alt" @(Remove)', function() {
+						var model = exports.model;
+						TAPI('files_remove/{0}/{1} @showloading'.format(model.id, row.id), function() {
+							NULL('?.items @hideloading');
+						});
+					});
+					break;
+			}
+		};
+
+		exports.remove = function() {
+			SETTER('approve/show', '@(Are you sure you want to remove all checked files?)', '"far fa-trash-alt" @(Remove)', function() {
+				var model = exports.model;
+				SETTER('loading/show');
+				model.checked.wait(function(item, next) {
+					TAPI('files_remove/' + model.id + '/' + item.id, next);
+				}, function() {
+					NULL('?.items @hideloading');
+				});
+			});
+		};
+
+	});
+
+</script>

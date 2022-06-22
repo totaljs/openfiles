@@ -1,0 +1,69 @@
+<style>
+	.~PATH~ .listing section > i { width: 14px; text-align: center; }
+</style>
+
+<div data-scope="~PATH~" class="~PATH~">
+	<header>
+		<label><i class="fas fa-hdd"></i>@(Storage)</label>
+	</header>
+	<div data---="viewbox__common.page__parent:auto;margin:110;scrollbar:1;visibleY:0" class="invisible">
+		<div class="padding">
+			<div data-bind="?.items__template">
+				<script type="text/html">
+					{{ if value && value.length }}
+						<div class="listing2">
+						{{ foreach m in value }}
+						<figure class="fs12 exec" data-exec="?/browse" data-id="{{ m.name }}">
+							<section>
+								<div class="pull-right">
+									{{ if m.size }}<span class="gray mr10">{{ m.size | filesize }}</span>{{ fi }}<span class="exec red" data-exec="?/drop" data-prevent="true" title="@(Drop)"><i class="far fa-trash-alt"></i></span>
+								</div>
+								<i class="fa fa-database mr5"></i>{{ m.name }}
+							</section>
+						</figure>
+						{{ end }}
+						</div>
+					</div>
+					{{ else }}
+						<div class="empty">
+							<i class="fa fa-database"></i>
+							<div>@(No databases)</div>
+							<summary>@(OpenFiles app does not contain any databases yet)</summary>
+						</div>
+					{{ fi }}
+				</script>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div data---="importer__common.form__if:browsefiles;url:/forms/files.html"></div>
+
+<script>
+	PLUGIN('~PATH~', function(exports) {
+
+		exports.reload = function() {
+			exports.refresh();
+		};
+
+		exports.refresh = function() {
+			WAPI('list', '?.items @hideloading');
+		};
+
+		exports.browse = function(el) {
+			var path = 'browsefiles';
+			SET(path, { id: ATTRD(el), items: null });
+			SET('common.form @showloading', path);
+		};
+
+		exports.drop = function(el) {
+			var id = ATTRD(el);
+			SETTER('approve/show', '@(Are you sure you want to drop the <b>"{0}"</b> storage?)'.format(id), '"far fa-trash-alt" @(Drop)', function() {
+				TAPI('files_drop/{0} @showloading'.format(id), function() {
+					exports.refresh();
+				});
+			});
+		};
+
+	});
+</script>

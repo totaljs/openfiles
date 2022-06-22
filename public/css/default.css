@@ -1,0 +1,40 @@
+html,body { margin: 0; padding: 0; overflow: hidden !important; height: 100%; background-color: #FFF; }
+
+section header { height: 50px; border-bottom: 1px solid #E0E0E0; line-height: 49px; padding: 0 20px; font-weight: bold; }
+section header label { font-weight: bold; }
+section header label i { margin-right: 8px; }
+section header .consumption { float: right; font-size: 11px; font-weight: normal; color: #777; }
+section header .consumption i { margin-left: 5px; color: #000; }
+
+main header { height: 50px; border-bottom: 1px solid #E0E0E0; line-height: 49px; padding: 0 20px; }
+main header label { font-weight: bold; }
+main header label i { margin-right: 8px; }
+
+.exec { cursor: pointer; }
+.fs13 { font-size: 13px; }
+
+.bg-yellow { background-color: #FFFEEF; }
+p { margin: 0 0 10px; padding: 0; }
+
+.button { width: 100%; height: 34px; line-height: 34px; padding: 0; font-size: 14px; border-radius: var(--radius); border: 1px solid rgba(0,0,0,0.1); background-color: var(--color); cursor: pointer; color: #FFF; text-align: center; }
+.button:opacity { opacity: 0.8; }
+.button:disabled { background-color: #E0E0E0 !important; color: #999 !important; }
+.button i { margin-right: 5px; }
+
+.monospace { font-family: Menlo, Consolas, monospace; }
+
+.empty { margin: 10px 15px; }
+.empty > i { float: left; width: 36px; height: 36px; line-height: 36px; font-size: 18px; text-align: center; background-color: #F0F0F0; border-radius: var(--radius); margin-right: 10px; }
+.empty > div { font-size: 12px; font-weight: bold; padding-top: 2px; }
+.empty > summary { font-size: 11px; color: #999; border: 0; background: transparent; }
+.ui-dark .empty i { background-color: #383838; }
+
+.ui-input-focused .ui-input-control { box-shadow: rgb(46 170 220 / 70%) 0 0 0 1px inset, rgb(46 170 220 / 40%) 0 0 0 2px !important; }
+.ui-inputtags-focused .ui-inputtags-control { box-shadow: rgb(46 170 220 / 70%) 0 0 0 1px inset, rgb(46 170 220 / 40%) 0 0 0 2px !important; }
+
+.CodeMirror { font-size: 13px; font-family: Menlo, Consolas, monospace !important; }
+.ui-windows-item { box-shadow: 2px 2px 20px rgba(0,0,0,0.1); }
+
+.centered { margin: 20px auto; border-radius: var(--radius); border: 1px solid #DFDFDF; background-color: #FFF; }
+.centered > *:first-child { border-top-left-radius: var(--radius); border-top-right-radius: var(--radius); }
+.centered > *:last-child { border-bottom-left-radius: var(--radius); border-bottom-right-radius: var(--radius); }

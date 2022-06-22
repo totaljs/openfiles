@@ -1,0 +1,164 @@
+<style>
+	.~PATH~ .list { margin: 0 -8px; }
+	.~PATH~ .list .item { float: left; width: 25%; position: relative; }
+	.~PATH~ .list .item figure { background-color: #F0F0F0; border: 1px solid #E0E0E0; padding: 15px 20px; border-radius: var(--radius); margin: 8px; transition: all .2s }
+	.~PATH~ .list .item .controls { float: right; font-size: 16px; color: gray; cursor: pointer; }
+	.~PATH~ .list .item .controls i { transition: transform .3s, color .3s; }
+	.~PATH~ .list .item .controls:hover i { transform: scale(1.1); color: #000; }
+	.~PATH~ .list .item .data { font-size: 11px; color: #777; line-height: 14px; margin: 3px 0 0 55px; }
+	.~PATH~ .list .icon { width 40px; float: left; }
+	.~PATH~ .list .icon i { font-size: 24px; color: #fff; width: 43px; height: 43px; line-height: 43px; text-align: center; border-radius: var(--radius); }
+	.~PATH~ .list .meta { margin: 0 40px 0 55px; }
+	.~PATH~ .list .status i { font-size: 9px; float: left; margin: 3px 3px 0 0; }
+	.~PATH~ .list .battery { position: absolute; right: 27px; top: 55px; transform: rotate(-90deg); font-size: 16px; }
+	.~PATH~ .list button { padding: 7px 8px; border-radius: var(--radius); color: #000; border-radius: 0; border: 1px solid #E0E0E0; background-color: #FFF; font-size: 12px; border-left: 0; min-width: 90px; }
+	.~PATH~ .list button:first-child { border-top-left-radius: var(--radius); border-bottom-left-radius: var(--radius); border-left: 1px solid #E0E0E0; }
+	.~PATH~ .list button:last-child { border-top-right-radius: var(--radius); border-bottom-right-radius: var(--radius); }
+	.~PATH~ .list button i { margin-right: 5px; }
+	.~PATH~ .list button:hover { background-color: #F9F9F9; }
+	.~PATH~ .list button:active { background-color: #F9F9F9; color: #777; }
+	.~PATH~ .list button:disabled { color: #999 !important; background-color: #F8F8F8 !important; cursor: not-allowed; border-color: #E0E0E0 !important; }
+</style>
+
+<div data-scope="~PATH~" class="~PATH~">
+	<header>
+		<div class="toolbar pull-right" style="margin-top:12px">
+			<button class="exec" data-exec="?/add"><i class="fa fa-plus-circle green"></i>@(Add)</button>
+		</div>
+		<div class="pull-right fs11 mr10">
+			<a href="https://docs.totaljs.com/extensions/" target="_blank" class="gray"><i class="fa fa-book mr5"></i>@(Documentation)</a>
+		</div>
+		<label><i class="fa fa-plug"></i>@(Extensions)</label>
+	</header>
+	<div data---="viewbox__common.page__parent:auto;margin:110;scrollbar:1;visibleY:0" class="invisible">
+		<div class="padding" style="padding-top:10px">
+			<div data-bind="?.items__template" class="list">
+				<script type="text/html">
+					{{ if value && value.length }}
+						{{ foreach m in value }}
+						<div class="item" data-id="{{ m.id }}">
+							<figure>
+								<div class="controls exec" data-exec="?/options">
+									<i class="fas fa-ellipsis-h"></i>
+								</div>
+								<div class="icon"><i class="{{ m.icon | empty('fa fa-plug') }}" style="background-color:{{ m.id | color }}"></i></div>
+								<div class="meta">
+									<div class="b hellip serial">{{ m.name }}</div>
+								</div>
+								<div class="data">
+									<div>@(Version:) {{ m.version | empty }}</div>
+									<div class="hellip" title="{{ m.summary }}">{{ m.summary | empty }}</div>
+									<div class="mt10">
+										<button class="exec" data-exec="?/readme"><i class="fa fa-info-circle"></i>@(Read me)</button>
+										<button class="exec" data-exec="?/settings"{{ if !m.setup }} disabled{{ fi }}><i class="fa fa-cog"></i>@(Configure)</button>
+									</div>
+								</div>
+							</figure>
+						</div>
+						{{ end }}
+					{{ else }}
+						<div class="empty">
+							<i class="fa fa-database"></i>
+							<div>@(No extensions)</div>
+							<summary>@(The app does not contain any extension yet)</summary>
+						</div>
+					{{ fi }}
+				</script>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div data---="importer__common.form__if:configform;url:/forms/config.html"></div>
+<div data---="importer__common.form__if:readmeform;url:/forms/readme.html"></div>
+
+<script>
+
+	PLUGIN('~PATH~', function(exports) {
+
+		exports.reload = function() {
+			exports.refresh();
+		};
+
+		exports.refresh = function() {
+			WAPI('extensions_list', '?.items');
+		};
+
+		exports.add = function() {
+			var opt = {};
+			opt.accept = 'text/*';
+			SETTER('filereader/open', opt, function(file) {
+
+				var obj = {};
+				try {
+					new Function('exports', file.body)(obj);
+				} catch (e) {
+					console.log(e);
+				}
+
+				WAPI('extensions_save', { body: file.body }, ASETTER('message/response', '@(The extension has been added successfully)', exports.refresh));
+			});
+		};
+
+		exports.options = function(el) {
+
+			var id = el.attrd2('id');
+			var item = GET('?').items.findItem('id', id);
+			var opt = {};
+			opt.element = el;
+			opt.align = 'right';
+			opt.items = [];
+
+			opt.items.push({ id: 'readme', name: '@(Read me)', icon: 'fa fa-info-circle' });
+
+			if (item.setup)
+				opt.items.push({ id: 'config', name: '@(Configure)', icon: 'fa fa-cog' });
+
+			opt.items.push('-');
+			opt.items.push({ id: 'download', name: '@(Download)', icon: 'fa fa-cloud-download' });
+			opt.items.push({ id: 'remove', name: '@(Remove)', icon: 'fas fa-trash-alt red' });
+			opt.callback = function(selected) {
+				if (selected.id === 'config') {
+					exports.settings(id);
+				} else if (selected.id === 'readme') {
+					exports.readme(id);
+				} else if (selected.id === 'download') {
+					exports.download(id);
+				} else if (selected.id === 'remove') {
+					SETTER('approve/show', '@(Are you sure you want to remove "{name}" extension?)'.arg(item, 'escape'), '"far fa-trash-alt" @(Remove)', function() {
+						WAPI('extensions_remove/' + id, ASETTER('message/response', exports.refresh));
+					});
+				}
+			};
+
+			SETTER('menu/show', opt);
+		};
+
+		exports.readme = function(el) {
+			var id = el instanceof jQuery ? el.attrd2('id') : el;
+			WAPI('extensions_readme/{0} @showloading'.format(id), function(response) {
+				SET('readmeform @hideloading', { readme: (response || '').format(location.origin) });
+				SET('common.form', 'readmeform');
+			});
+		};
+
+		exports.settings = function(el) {
+			var id = el instanceof jQuery ? el.attrd2('id') : el;
+			WAPI('config_read/{0} @showloading'.format(id), function(response) {
+				response.id = id;
+				SET('configform @reset @hideloading', response);
+				SET('common.form', 'configform');
+			});
+		};
+
+		exports.download = function(el) {
+			var id = el instanceof jQuery ? el.attrd2('id') : el;
+			WAPI('extensions_download/' + id, ASETTER('message/response', function(response) {
+				var file = new File([response.value], id + '.js', { type: 'text/plain; charset=utf-8' });
+				saveAs(file);
+			}));
+		};
+
+	});
+
+</script>

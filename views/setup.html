@@ -1,0 +1,149 @@
+@{title('Setup')}
+@{layout('')}
+
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=10" />
+	<meta name="format-detection" content="telephone=no" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover" />
+	<meta name="robots" content="all,follow" />
+	<link rel="stylesheet" href="https://cdn.componentator.com/spa.min@19.css" />
+	<script src="https://cdn.componentator.com/spa.min@19.js"></script>
+	@{import('meta', 'head', 'ui.css + default.css', 'ui.js', 'favicon.ico')}
+</head>
+<body data---="exec">
+
+	<div data---="LAZY menu__null__style:2"></div>
+	<div data---="LAZY clipboard"></div>
+	<div data---="LAZY floatinginput"></div>
+	<div data---="LAZY filereader"></div>
+	<div data---="LAZY fileuploader"></div>
+	<div data---="LAZY message__null__style:2"></div>
+	<div data---="LAZY approve"></div>
+
+	<div data---="locale"></div>
+	<div data---="markdown"></div>
+	<div data---="loading__null__style:2" class="hidden"></div>
+	<div data---="windows__common.windows"></div>
+
+	<div data---="navlayout__common.menu__parent:window;hide:xs;width:220" class="invisible">
+
+		<section style="background-color:#FFF">
+			<header>
+				<div class="consumption" data-bind="common.consumption__template">
+					<script type="text/html">
+						{{ value.memory }} MB <i class="fas fa-microchip"></i>
+					</script>
+				</div>
+				<div class="exec" data-exec="common/menu" data-if="/">@{MAIN.name} v@{MAIN.version}</div>
+			</header>
+
+			<div class="nav" style="background-color:transparent">
+				<div data---="viewbox__null__parent:auto;margin:95;scrollbar:0;visible:0">
+					<nav data---="selected__NAV.url__selector:div">
+						<div class="exec" data-exec="common/page" data-if="/"><i class="fa fa-cog"></i>@(Setup)</div>
+						<div class="exec" data-exec="common/page" data-if="/storage/"><i class="fas fa-hdd"></i>@(Storage)</div>
+						<div class="exec" data-exec="common/page" data-if="/extensions/"><i class="fa fa-plug"></i>@(Extensions)</div>
+					</nav>
+				</div>
+			</div>
+		</section>
+
+		<main style="background-color:#FFF;border-left:1px solid #E0E0E0">
+			<div data---="part__common.page__if:pagesetup;url:/parts/setup.html;reload:?/reload;autofocus:1" class="invisible"></div>
+			<div data---="part__common.page__if:pagestorage;url:/parts/storage.html;reload:?/reload" class="invisible"></div>
+			<div data---="part__common.page__if:pageextensions;url:/parts/extensions.html;reload:?/reload" class="invisible"></div>
+		</main>
+
+	</div>
+
+	<div data---="importer__common.form__if:queryform;url:/forms/query.html"></div>
+
+	<script>
+
+		WAPI({ url: QUERIFY('/setup/', NAV.query) });
+		ENV('ts', 'yyyy-MM-dd HH:mm:ss');
+
+		DEF.ajaxerrors = true;
+		DEF.repeatfocus = false;
+		NAV.custom();
+
+		var common = {};
+
+		common.windows = [];
+		common.page = 'pagesetup';
+		common.isbundle = '@{F.isBundle}' === 'true';
+
+		PLUGIN('common', function(exports) {
+
+			exports.refresh = function() {
+				WAPI('usage', 'common.consumption');
+			};
+
+			exports.menu = function(el) {
+				var opt = {};
+				opt.element = el;
+				opt.items = [];
+				common.isbundle && opt.items.push({ id: 'update', name: '@(Update bundle)', icon: 'fas fa-sync' });
+				opt.items.push({ id: 'logout', name: '@(Logout)', icon: 'fas fa-power-off red' });
+				opt.callback = function(selected) {
+
+					if (selected.id === 'update') {
+						SETTER('approve/show', '@(Are you sure you want to update the OpenFiles version?)', '"fas fa-sync" @(Upload bundle)', function() {
+							var opt = {};
+							opt.multiple = false;
+							opt.url = location.href;
+							opt.callback = function(response, err) {
+								if (err) {
+									SETTER('message/warning', err);
+								} else {
+									SETTER('loading/show');
+									setTimeout(() => location.reload(), 5000);
+								}
+							};
+							SETTER('fileuploader/upload', opt);
+						});
+					}
+
+					if (selected.id === 'logout')
+						location.href = '/';
+
+				};
+				SETTER('menu/show', opt);
+			};
+
+			exports.page = function(el) {
+				REDIRECT(el.attrd('if'));
+			};
+
+			setInterval(exports.refresh, 30000);
+			exports.refresh();
+
+		});
+
+		ROUTE('/', function() {
+			SET('common.page', 'pagesetup');
+		});
+
+		ROUTE('/extensions/', function() {
+			SET('common.page', 'pageextensions');
+		});
+
+		ROUTE('/storage/', function() {
+			SET('common.page', 'pagestorage');
+		});
+
+		ON('@flag showloading', function() {
+			SETTER('loading/show');
+		});
+
+		ON('@flag hideloading', function() {
+			SETTER('loading/hide', 800);
+		});
+
+	</script>
+
+</body>
+</html>
