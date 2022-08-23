@@ -13,8 +13,9 @@
     "start": "node index.js 8000"
   },
   "keywords": [
-    "synchronization",
-    "proxy"
+    "files",
+    "upload",
+    "storage"
   ],
   "author": "Peter Širka",
   "license":"MIT"

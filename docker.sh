@@ -2,9 +2,9 @@ echo "BUILDING"
 docker-compose build
 
 echo "TAGGING"
-docker tag opensync_web totalplatform/opensync:latest
+docker tag openfiles_web totalplatform/openfiles:latest
 
 echo "PUSHING"
-docker push totalplatform/opensync:latest
+docker push totalplatform/openfiles:latest
 
 echo "DONE"
