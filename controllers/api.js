@@ -95,13 +95,15 @@ function upload_base64(db) {
 		return;
 	}
 
-	var type = self.body.file.base64ContentType();
+	var file = self.body.file || self.body.data;
+
+	var type = file.base64ContentType();
 	if (!type) {
 		self.invalid('Invalid file type');
 		return;
 	}
 
-	var buffer = self.body.file.base64ToBuffer();
+	var buffer = file.base64ToBuffer();
 	if (!buffer) {
 		self.invalid('Invalid file data');
 		return;
