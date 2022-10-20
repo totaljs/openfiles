@@ -3,9 +3,10 @@ exports.install = function() {
 	CORS();
 
 	// Files
-	ROUTE('+POST    /base64/{db}/',      upload_base64, 1024 * 10);        // max. 10 MB
+	ROUTE('+POST    /base64/{db}/',      upload_base64, 1024 * 10);        // max.  10 MB
 	ROUTE('+POST    /upload/{db}/',      upload, ['upload'], 1024 * 100);  // max. 100 MB
 	ROUTE('+POST    /files/{db}/',       upload, ['upload'], 1024 * 100);  // max. 100 MB
+	ROUTE('+POST    /url/{db}/',         upload_url);
 	ROUTE('+GET     /files/{db}/         *Files --> query');
 	ROUTE('+GET     /files/{db}/{id}/    *Files --> read');
 	ROUTE('+POST    /files/{db}/{id}/    *Files --> update');
@@ -24,7 +25,7 @@ function index() {
 		this.redirect('/setup/');
 }
 
-const IMAGES = { jpg: 1, png: 1, jpeg: 1, gif: 1, svg: 1 };
+const IMAGES = { jpg: 1, png: 1, jpeg: 1, gif: 1 };
 
 function upload(db) {
 
@@ -118,6 +119,52 @@ function upload_base64(db) {
 
 	FILESTORAGE(db).save(obj.id, obj.name, buffer, function(err, meta) {
 
+		obj.width = meta.width;
+		obj.height = meta.height;
+
+		var url = '/files/' + db + '/' + obj.id + '-' + FUNC.checksum(obj.id) + '.' + obj.ext;
+		obj.url = self.query.hostname ? self.hostname(url) : url;
+
+		var evt = 'files_save';
+		F.$events[evt] && EMIT(evt, obj.id, obj);
+
+		if (CONF.allow_tms && F.tms.publish_cache.upload && F.tms.publishers.upload)
+			PUBLISH('upload', { data: obj });
+
+		self.json(obj);
+	});
+}
+
+function upload_url(db) {
+
+	var self = this;
+
+	if (!self.user.sa && (!self.user.allow_upload || (self.user.databases && !self.user.databases[db]))) {
+		self.status = 401;
+		self.invalid('Not allowed');
+		return;
+	}
+
+	var file = self.body;
+	var name = file.filename || file.name;
+	if (!name) {
+		self.invalid('Invalid file name');
+		return;
+	}
+
+	if (!file.url) {
+		self.invalid('Invalid file url');
+		return;
+	}
+
+	var obj = {};
+	obj.id = file.id || self.query.id || UID();
+	obj.name = name;
+	obj.ext = U.getExtension(name);
+
+	FILESTORAGE(db).save(obj.id, obj.name, file.url, function(err, meta) {
+
+		obj.type = meta.type || U.getContentType(obj.ext);
 		obj.width = meta.width;
 		obj.height = meta.height;
 
