@@ -1,0 +1,75 @@
+// OpenFiles translation (es)
+// Created:  2023-02-14 13:46:09 with Total.js TotalTranslator
+
+T117eq6                  : APLICAR
+T11qckoa                 : Cerrar sesión
+T12tjh4                  : Cerrar
+T139r0xu                 : Versión:
+T13gs4nu                 : Documentación
+T13lckcu                 : Permitir usar solo estas bases de datos
+T13td9gv                 : ¿Está seguro de que desea eliminar la extensión "{name}"?
+T14f871g                 : Eliminar
+T14mox7c                 : ENVIAR
+T15819ds                 : Disponible solo para la versión bundle
+T17byts1                 : Examinar archivos: {0}
+T17rlj2g                 : Si deseas desconectar esta interfaz de configuración para todos los que tengan el token, verifica el control a continuación.
+T18jcqm1                 : Sin tokens
+T196e3ti                 : Configuración
+T19eat6q                 : Leeme
+T19hvy                   : Fecha
+T19udr                   : Eliminar
+T1a6ui                   : Editar
+T1afxar3                 : Permitir eliminar archivos
+T1bhvtp                  : Configuración
+T1c6w1kx                 : Para más información sigue:
+T1cj4i9                  : El token de configuración es importante para acceder a la configuración de OpenFiles
+T1d0mch1                 : ¿Deseas eliminar el archivo seleccionado <b>"{0}"</b>?
+T1ddn912                 : Token de configuración
+T1dra92                  : Ancho
+T1eo1                    : Añadir
+T1fvl7                   : Nombre
+T1goptw9                 : Actualizar bundle
+T1hmub6p                 : Cargando
+T1i4vgio                 : Ingresa la dirección URL absoluta con el token de acceso a otro servidor OpenFiles
+T1j8rl                   : Tamaño
+T1jup2g1                 : La aplicación aún no contiene ninguna extensión.
+T1jz5w9p                 : Escribe un nombre de base de datos y presiona enter
+T1nvtv51                 : ¿Deseas eliminar el almacenamiento <b>"{0}"</b>?
+T1p5izkf                 : Servicio de mensajes Total.js
+T1rma4pt                 : Eliminando
+T1srlcj2                 : Copiar token
+T1u19r14                 : Copiar dirección URL
+T1ufwq7i                 : Generar token
+T1ule8qt                 : La extensión ha sido añadida con éxito
+T1vecti3                 : Almacenamiento
+T1wd8mtn                 : Nombre para esta instancia
+T1wy96ke                 : OpenFiles no contiene ningún token de acceso
+T31koxg                  : Extensiones
+T3mr6z8                  : Documentación TMS
+T3yulf9                  : Crear token
+T4hb798                  : desactivado
+T5hn0f2                  : La aplicación OpenFiles aún no contiene ninguna base de datos
+T8xrjm7                  : Clave secreta
+T93zwlh                  : La ruta puede contener una ruta absoluta en el formato: <code>~/path/to/database/</code>
+Tbkv49a                  : El token permitirá usar solo las bases de datos especificadas
+Tbupqhp                  : Token de acceso
+Tcaljg6                  : Access tokens
+Te2a5df                  : Sin extensiones
+Tfp15qm                  : Content-Type
+Tglfu16                  : Ruta de almacenamiento
+Th6c6yr                  : Desconecta la interfaz de configuración
+Tidxja9                  : Permitir subir archivos
+Tju6a4m                  : Configurar
+Tky4f92                  : La configuración se ha guardado correctamente
+Tl7brl8                  : ¿Deseas actualizar la versión de OpenFiles?
+Tlrqvxy                  : Mostrar token
+Tmjainz                  : TMS permite suscribirse a operaciones de inserción, actualización, modificación y carga en esta instancia de OpenFiles
+Tn0eqzj                  : Extensión
+Tofwsip                  : Cargar bundle
+Tooknmw                  : Descargar
+Tp8e6zd                  : Sin bases de datos
+Tsvtv54                  : ¿Deseas eliminar todos los archivos marcados?
+Tx6i49z                  : El endpoint para la aplicación Total.js Message Service tendrá el formato <b></b>
+Tx9d2fu                  : Cancelar
+Ty1sqv6                  : Actualizar token
+Tzop8w7                  : Altura
