@@ -9,7 +9,7 @@ NEWSCHEMA('Files', function(schema) {
 
 			var params = $.params;
 
-			if (!$.user.sa && $.user.databases && !$.user.databases.includes(params.db)) {
+			if (!$.user.sa && $.user.databases && $.user.databases.length && !$.user.databases.includes(params.db)) {
 				$.invalid(401);
 				return;
 			}
@@ -57,7 +57,7 @@ NEWSCHEMA('Files', function(schema) {
 
 			var params = $.params;
 
-			if (!$.user.sa && (($.user.databases && !$.user.databases.includes(params.db)) || $.user.allow_update)) {
+			if (!$.user.sa && (($.user.databases && $.user.databases.length && !$.user.databases.includes(params.db)) || $.user.allow_update)) {
 				$.invalid(401);
 				return;
 			}
@@ -73,7 +73,7 @@ NEWSCHEMA('Files', function(schema) {
 
 			var params = $.params;
 
-			if (!$.user.sa && (($.user.databases && !$.user.databases.includes(params.db)) || !$.user.allow_remove)) {
+			if (!$.user.sa && (($.user.databases && $.user.databases.length && !$.user.databases.includes(params.db)) || !$.user.allow_remove)) {
 				$.invalid(401);
 				return;
 			}

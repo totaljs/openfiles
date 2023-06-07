@@ -34,7 +34,7 @@ function upload(db) {
 
 	var self = this;
 
-	if (!self.user.sa && (!self.user.allow_upload || (self.user.databases && !self.user.databases.includes(db)))) {
+	if (!self.user.sa && (!self.user.allow_upload || (self.user.databases && self.user.databases.length && !self.user.databases.includes(db)))) {
 		self.status = 401;
 		self.invalid('Not allowed');
 		return;
@@ -77,7 +77,7 @@ function upload_base64(db) {
 
 	var self = this;
 
-	if (!self.user.sa && (!self.user.allow_upload || (self.user.databases && !self.user.databases.includes(db)))) {
+	if (!self.user.sa && (!self.user.allow_upload || (self.user.databases && self.user.databases.length && !self.user.databases.includes(db)))) {
 		self.status = 401;
 		self.invalid('Not allowed');
 		return;
@@ -126,7 +126,7 @@ function upload_url(db) {
 
 	var self = this;
 
-	if (!self.user.sa && (!self.user.allow_upload || (self.user.databases && !self.user.databases.includes(db)))) {
+	if (!self.user.sa && (!self.user.allow_upload || (self.user.databases && self.user.databases.length && !self.user.databases.includes(db)))) {
 		self.status = 401;
 		self.invalid('Not allowed');
 		return;
