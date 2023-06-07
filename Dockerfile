@@ -1,4 +1,4 @@
-FROM node:16-alpine
+FROM node:18-alpine
 MAINTAINER totalplatform "info@totaljs.com"
 
 VOLUME /www

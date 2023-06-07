@@ -1,0 +1,94 @@
+<style>
+	.CLASS .listing2 { column-gap: 7px; }
+	.CLASS .listing2 figure { margin-bottom: 7px; }
+	.CLASS .listing2 figure:hover { filter:brightness(0.9); }
+	.CLASS .controls { border-left: 1px solid rgba(0,0,0,0.1); padding: 0 8px 0 15px; line-height: 40px; height: 40px; }
+	.CLASS .icon { border-right: 1px solid rgba(0,0,0,0.1); margin-right: 8px; padding: 0 15px 0 8px; text-align: center; float: left; line-height: 40px; height: 40px; font-size: 20px; }
+</style>
+
+<ui-plugin config="aclass:1">
+
+	<header>
+		<label><i class="ti ti-copy"></i>@(Files)</label>
+		<div class="toolbar">
+			<button class="exec" data-exec="?/refresh"><i class="ti ti-refresh"></i>@(Refresh)</button>
+		</div>
+	</header>
+
+	<ui-component name="viewbox" config="parent:auto;margin:60" class="invisible">
+		<div>
+			<div class="padding">
+				<ui-component name="empty" path="?.items" config="parent:auto">
+					<script type="text/html">
+						<div>@(The files doesn't contain any files)</div>
+					</script>
+
+					<div>
+						<div class="m">
+							<div style="max-width:250px;width:100%">
+								<ui-component name="searchinput" path="?.search" config="autofocus:1;placeholder:@(Search)"></ui-component>
+							</div>
+						</div>
+						<div style="height:5px"></div>
+						<ui-component name="search" path="?.search" config="selector:figure;datasource:?.list">
+							<ui-bind path="?.items" config="template:figure" class="grid-4 grid-sm-2 grid-xs-1 listing2">
+								<script type="text/html">
+									{{ foreach m in value }}
+										<figure class="exec" data-exec="?/detail" data-id="{{ m.id }}" data-search="{{ m.name }}">
+											<section>
+												<div class="pull-right controls">
+													<span class="exec" data-exec="?/remove" data-prevent="true"><i class="ti ti-trash red"></i></span>
+												</div>
+												<div class="icon">
+													<i class="ti ti-database-alt"></i>
+												</div>
+												<div>{{ m.name }}</div>
+												<div class="fs12 gray">@(Size:) <b>{{ m.size | filesize }}</b></div>
+											</section>
+										</figure>
+									{{ end }}
+								</script>
+							</ui-bind>
+						</ui-component>
+					</div>
+				</ui-component>
+			</div>
+		</div>
+	</ui-component>
+
+</ui-plugin>
+
+<ui-component name="importer" path="common.form" config="if:formlogs;url:@{#}/~ID~/forms/logs.html"></ui-component>
+<ui-component name="importer" path="common.form" config="if:formdetail;url:@{#}/~ID~/forms/detail.html"></ui-component>
+
+<script>
+	PLUGIN(function(exports) {
+
+		exports.reload = function() {
+			exports.refresh();
+		};
+
+		exports.detail = function(el) {
+			SET('formdetail', { id: ATTRD(el), items: null });
+			SET('common.form', 'formdetail');
+		};
+
+		exports.remove = function(el) {
+			var model = exports.model;
+			var id = ATTRD(el);
+
+			EXEC('-approve/show', '@(Are you sure you want to drop the <b>"{0}"</b> storage?)'.format(id), '"ti ti-trash" @(Remove)', function() {
+				exports.tapi('files_drop/{0} @showloading ERROR'.format(id), function() {
+					exports.refresh();
+					EXEC('-notify/success @hideloading', '@(The storage has been dropped successfully.)');
+				});
+			});
+		};
+
+		exports.refresh = function() {
+			exports.tapi('files_databases ERROR', 'items');
+		};
+
+	});
+
+</script>

@@ -1,0 +1,93 @@
+<div data---="box__common.form__if:~PATH~;icon:ti ti-database-alt;reload:?/reload;scrollbar:0;submit:?/submit;width:1200" class="hidden" plugin="~PATH~">
+	<nav>
+		<ui-bind path="?.changed" config="enabled:value && value.length" child=".save">
+			<ui-bind path="?.checked" config="enabled:value && value.length" child=".remove">
+				<button class="exec save" data-exec="?/save" disabled><i class="ti ti-check-circle green"></i>@(Apply changes)</button>
+				<button class="exec remove" data-exec="?/remove" disabled><i class="ti ti-trash red"></i>@(Remove)</button>
+			</ui-bind>
+		</ui-bind>
+	</nav>
+
+	<div>
+		<ui-component name="datagrid" path="?.items" config="margin:0;button:?/button;height:.ui-box-body;noborder:1;exec:?/filter;pagination:false;checked:?.checked;changed:?.changed" class="invisible">
+			<script type="text/plain">
+			[
+				{ name: 'name', text: '@(Name)', width: 250, class: 'gray', editable: 1 },
+				{ name: 'ext', text: '@(Extension)', width: 120, align: 1, monospace: 1, class: 'b' },
+				{ name: 'type', text: '@(Content-Type)', width: 200, monospace: 1, colorize: 1 },
+				{ name: 'size', text: '@(Size)', type: 'number', width: 100, template: '{{ size | filesize }}' },
+				{ name: 'width', text: '@(Width)', type: 'number', width: 100 },
+				{ name: 'height', text: '@(Height)', type: 'number', width: 100 },
+				{ name: 'date', text: '@(Date)', align: 1, template: '{{ date | format(\'[ts]\') }}', type: 'date' },
+				{ type: 'controls', template: '<button name="download"><i class="ti ti-cloud-download"></i><span>@(Download)</span></button><button name="remove"><i class="ti ti-trash red"></i></button>' }
+			]
+			</script>
+		</ui-component>
+	</div>
+	<nav>
+		<button name="cancel" style="width:100%">@(Close)</button>
+	</nav>
+</div>
+
+<script>
+
+	PLUGIN('~PATH~', function(exports) {
+
+		exports.reload = function(com) {
+			var model = exports.model;
+			var id = model ? model.id : null;
+			com.reconfigure({ title: '@(Browse files: {0})'.format(id) });
+		};
+
+		exports.filter = function(type, filter, sort, page) {
+			var model = exports.model;
+			if (!filter)
+				filter = {};
+			filter.sort = sort;
+			filter.page = page;
+			exports.tapi(QUERIFY('files_browse/{id} @showloading'.arg(model), filter), '?.items @hideloading');
+		};
+
+		exports.button = function(name, row) {
+			switch (name) {
+				case 'download':
+					var download = !({ jpg: 1, pdf: 1, png: 1, gif: 1, jpeg: 1, webp: 1, mp4: 1, mp3: 1, ogg: 1, tiff: 1, svg: 1 }[row.ext]);
+					W.open(row.url + (download ? '?download=1' : ''));
+					break;
+				case 'remove':
+					SETTER('approve/show', '@(Are you sure you want to remove selected file <b>"{0}"</b>?)'.format(row.name.encode()), '"ti ti-trash" @(Remove)', function() {
+						var model = exports.model;
+						exports.tapi('files_remove/{0}/{1} @showloading'.format(model.id, row.id), function() {
+							exports.nul('?.items @hideloading');
+						});
+					});
+					break;
+			}
+		};
+
+		exports.save = function(rows) {
+			var model = exports.model;
+
+			model.changed.wait(function(item, next) {
+				exports.tapi('files_update/{0}/{1} @showloading'.format(model.id, item.id), item, next);
+			}, function() {
+				exports.nul('?.items');
+				EXEC('-notify/success @hideloading', '@(The files has been saved successfully.)');
+			});
+		};
+
+		exports.remove = function() {
+			SETTER('approve/show', '@(Are you sure you want to remove all checked files?)', '"ti ti-trash" @(Remove)', function() {
+				var model = exports.model;
+				SETTER('loading/show');
+				model.checked.wait(function(item, next) {
+					exports.tapi('files_remove/{0}/{1}'.format(model.id, item.id), next);
+				}, function() {
+					exports.nul('?.items @hideloading');
+				});
+			});
+		};
+
+	});
+
+</script>

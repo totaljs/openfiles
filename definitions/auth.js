@@ -1,3 +1,6 @@
+const REG_SETUP = /\/(api|setup)\//;
+
+var USER = { sa: true, permissions: EMPTYARRAY };
 var DDOS = {};
 
 AUTH(function($) {
@@ -9,18 +12,33 @@ AUTH(function($) {
 
 	var token = $.headers['x-token'] || $.query.token || '0';
 
-	if (!PREF.disconnected && ((!PREF.token && $.path[0] !== '/') || PREF.token === token)) {
-		$.success({ token: PREF.token, sa: true });
-		return;
-	} else {
-		var session = MAIN.tokens[token];
-		if (session) {
-			$.success(session);
-			return;
-		} else if (!PREF.disconnected && PREF.token === token) {
-			$.success({ token: PREF.token, sa: true, name: session.name });
+	if (REG_SETUP.test($.url)) {
+
+		// Setup interface
+		if (CONF.op_reqtoken && CONF.op_restoken) {
+			OpenPlatform.auth($);
 			return;
 		}
+
+		if (!CONF.token || CONF.token === token) {
+			if (DDOS[$.ip])
+				delete DDOS[$.ip];
+			$.success(USER);
+		} else {
+			if (DDOS[$.ip])
+				DDOS[$.ip]++;
+			else
+				DDOS[$.ip] = 1;
+			$.invalid();
+		}
+
+		return;
+	}
+
+	var item = MAIN.db.tokens.findItem('token', token);
+	if (item) {
+		$.success(item);
+		return;
 	}
 
 	if (DDOS[$.ip])
@@ -31,7 +49,6 @@ AUTH(function($) {
 	$.invalid();
 
 });
-
 
 ON('service', function(counter) {
 	if (counter % 15 === 0)
