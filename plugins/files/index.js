@@ -11,7 +11,7 @@ exports.install = function() {
 	ROUTE('+POST    /upload/{db}/',      upload, ['upload'], 1024 * 100);  // max. 100 MB
 	ROUTE('+POST    /files/{db}/',       upload, ['upload'], 1024 * 100);  // max. 100 MB
 	ROUTE('+POST    /url/{db}/',         upload_url);
-	ROUTE('+GET     /files/{db}/         *Files --> query');
+	ROUTE('+GET     /files/{db}/         *Files --> list');
 	ROUTE('+GET     /files/{db}/{id}/    *Files --> read');
 	ROUTE('+POST    /files/{db}/{id}/    *Files --> update');
 	ROUTE('+DELETE  /files/{db}/{id}/    *Files --> remove');
