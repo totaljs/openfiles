@@ -25,7 +25,7 @@ if (!CONF.cdn)
 	CONF.cdn = '//cdn.componentator.com';
 
 // UI components
-COMPONENTATOR('ui', 'exec,locale,aselected,page,viewbox,input,importer,box,cloudeditorsimple,validate,loading,intranetcss,notify,message,errorhandler,empty,menu,colorpicker,icons,miniform,clipboard,approve,columns,iframepreview,search,searchinput,fileuploader,formdata,filesaver,filereader,ready,datagrid,tangular-filesize', true);
+COMPONENTATOR('ui', 'exec,locale,aselected,page,inputtags,viewbox,input,importer,box,cloudeditorsimple,validate,loading,intranetcss,notify,message,errorhandler,empty,menu,colorpicker,icons,miniform,clipboard,approve,columns,iframepreview,search,searchinput,fileuploader,formdata,filesaver,filereader,ready,datagrid,tangular-filesize', true);
 
 // Permissions
 ON('ready', function() {
