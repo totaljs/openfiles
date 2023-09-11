@@ -112,6 +112,11 @@ NEWSCHEMA('Files', function(schema) {
 					}
 				}
 
+				if (!CONF.calculatesize) {
+					$.callback(arr);
+					return;
+				}
+
 				arr.wait(function(item, next) {
 
 					var dir = PATH.databases('fs-' + item.id);
