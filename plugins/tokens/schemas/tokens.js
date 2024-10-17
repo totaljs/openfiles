@@ -25,7 +25,7 @@ NEWSCHEMA('Tokens', function(schema) {
 
 	schema.action('create', {
 		name: 'Create token',
-		input: '*name, *token, allow_upload:Boolean, allow_remove:Boolean, allow_udpate:Boolean, databases:[String]',
+		input: '*name, *token, allow_upload:Boolean, allow_remove:Boolean, allow_update:Boolean, databases:[String]',
 		permissions: 'tokens',
 		action: function($, model) {
 			model.id = UID();
@@ -37,7 +37,7 @@ NEWSCHEMA('Tokens', function(schema) {
 
 	schema.action('update', {
 		name: 'Update token',
-		input: '*name, *token, allow_upload:Boolean, allow_remove:Boolean, allow_udpate:Boolean, databases:[String]',
+		input: '*name, *token, allow_upload:Boolean, allow_remove:Boolean, allow_update:Boolean, databases:[String]',
 		params: '*id:UID',
 		permissions: 'tokens',
 		action: function($, model) {
