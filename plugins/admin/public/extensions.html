@@ -1,0 +1,49 @@
+<style>
+	.account { float: right; margin: 13px 0 0 5px; border-left: 1px solid #E0E0E0; padding: 0 0 0 10px; }
+	.account > div { font-size: 16px; background-color: #F0F0F0; border-radius: 100px; width: 34px; height: 34px; text-align: center; line-height: 34px; cursor: pointer; }
+</style>
+
+<ui-component name="importer" path="*form" config="if:formcredentials;url:/~ID~/form.html"></ui-component>
+
+<script>
+
+	WAIT('user', () => $('header.top').prepend('<div class="account" title="{name}"><div class="exec" data-exec="useraccount"><i class="ti ti-account"></i></div></div>'.args(user)));
+
+	function useraccount(el) {
+		var opt = {};
+		opt.element = el;
+		opt.items = [];
+
+		if (user.openplatform)
+			opt.items.push({ id: 'openplatform', name: '@(Browse modules)', icon: 'ti ti-menu' });
+		else
+			opt.items.push({ id: 'account', name: '@(Change credentials)', icon: 'ti ti-key' });
+
+		if (!user.iframe)
+			opt.items.push({ id: 'logout', name: '@(Logout)', icon: 'ti ti-power-off red' });
+
+		opt.align = 'right';
+		opt.callback = function(selected) {
+
+			switch (selected.id) {
+				case 'openplatform':
+					location.href = user.openplatform;
+					break;
+				case 'account':
+					TAPI('Admin|read', function(response) {
+						SET('formcredentials @reset', response);
+						SET('*form', 'formcredentials');
+					});
+					break;
+				case 'logout':
+					TAPI('Admin|logout @showloading', () => location.href = (DEF.api + '?login=1'));
+					break;
+			}
+
+		};
+
+		if (opt.items.length > 1)
+			SETTER('menu/show', opt);
+	}
+
+</script>

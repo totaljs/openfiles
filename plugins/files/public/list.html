@@ -1,0 +1,125 @@
+<ui-component name="box" path="*form3" config="if:CLASS;icon:ti ti-copy;title:@(List of files);width:940;zindex:50;scrollbar:0" class="hidden CLASS" plugin="CLASS">
+	<nav>
+		<button class="exec" data-exec="?/refresh"><i class="ti ti-refresh"></i>@(Refresh)</button>
+	</nav>
+	<div>
+		<ui-component name="datagrid" path="?.items" config="margin:177;height:window;noborder:1;checkbox:0;button:?/button;exec:?/filter">
+			<script type="text/plain">
+				[
+					{ name: 'name', text: '@(Name)', width: 340, template: '{{ name }}' },
+					{ name: 'dimension', text: '@(Dimension)', width: 120, align: 1, monospace: 1, sort: false },
+					{ name: 'size', text: '@(Size)', width: 120, align: 2, alignheader: 2, template: '{{ if size === 0 }}0 KB{{ else }}{{ size | filesize }}{{ fi }}', monospace: 1, filter: false, class: 'gray' },
+					{ name: 'date', text: '@(Uploaded)', width: 140, align: 1, type: 'date', format: '[ts]' },
+					{ name: '@(Options)', filter: false, align: 1, sort: false, width: 120, template: '<a href="{{ url }}" class="fs12 mr5" target="_blank">@(Show)</a><div class="inline"><button name="rename" title="@(Rename)"><i class="ti ti-pencil"></i></button><button name="remove" title="@(Remove)"><i class="ti ti-remove"></i></button></div>' }
+				]
+			</script>
+		</ui-component>
+	</div>
+	<nav>
+		<button name="cancel" style="width:100%">@(Close)</button>
+	</nav>
+</ui-component>
+
+<script>
+
+	PLUGIN(function(exports) {
+
+		var meta;
+		var noscroll = false;
+
+		exports.refresh = function() {
+			exports.nul('items');
+		};
+
+		exports.filter = function(type, filter, sort, page) {
+
+			if (!meta) {
+				setTimeout(exports.filter, 100, type, filter, sort, page);
+				return;
+			}
+
+			let model = exports.model;
+
+			if (!filter)
+				filter = {};
+
+			filter.width = meta.width ? meta.width : undefined;
+			filter.height = meta.height ? meta.height : undefined;
+			filter.accept = meta.type;
+
+			if (sort)
+				filter.sort = sort;
+
+			if (page)
+				filter.page = page;
+
+			exports.tapi(QUERIFY('Files|list ERROR @showloading', filter), { db: meta.id }, function(response) {
+
+				for (let item of response.items)
+					item.dimension = (item.width && item.height ? (item.width + 'x' + item.height) : '');
+
+				exports.set('items @hideloading', response);
+			});
+		};
+
+		exports.init = function(opt) {
+			meta = opt;
+			exports.refresh();
+		};
+
+		exports.submit = function(row, grid, row_el) {
+			row.url = '/download/' + row.id + '.' + row.ext;
+			meta.callback(row, () => NULL('common.form3'));
+		};
+
+		exports.button = function(name, row) {
+
+			if (name === 'rename') {
+				let opt = {};
+				opt.value = row.name;
+				opt.centered = true;
+				opt.name = '@(Rename file)';
+				opt.callback = function(val) {
+					noscroll = true;
+					exports.tapi('Files|rename ERROR', { db: meta.id, id: row.id, name: val }, () => exports.refresh());
+				};
+				SETTER('prompt/show', opt);
+			} else if (name === 'remove') {
+				SETTER('approve/show', '@(Are you sure you want to remove selected file "{0}"?)'.format(row.name.encode()), ':ti ti-remove: @(Remove)', function() {
+					exports.tapi('Files|remove ERROR', { db: meta.id, id: row.id }, () => exports.refresh());
+				});
+			}
+
+		};
+
+		exports.upload = function(e) {
+
+			let opt = {};
+
+			if (e && !(e instanceof jQuery))
+				opt.files = e;
+
+			opt.url = ENV('upload');
+			opt.multiple = true;
+			opt.width = meta.width;
+			opt.height = meta.height;
+			opt.onlylarger = true;
+			opt.keeporiginal = true;
+
+			switch (meta.type) {
+				case 'images':
+					opt.accept = 'image/*';
+					break;
+			}
+
+			opt.callback = exports.refresh;
+			SETTER('fileuploader/upload', opt);
+		};
+
+		exports.dropfiles = function(e) {
+			exports.upload(e);
+		};
+
+	});
+
+</script>

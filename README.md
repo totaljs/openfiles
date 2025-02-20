@@ -1,4 +1,4 @@
-# OpenFiles
+# OpenFiles (v2)
 
 __OpenFiles__ is a lightweight file storage database for storing uploaded files from clients.
 

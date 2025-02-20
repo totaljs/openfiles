@@ -1,0 +1,66 @@
+<ui-component name="box" path="*form" config="if:CLASS;icon:ti ti-network-alt;autofocus:true;reload:?/reload;scrollbar:1;submit:?/submit;width:600" class="hidden CLASS" plugin="CLASS">
+	<div>
+		<ui-bind path="?.token" config="show;template" class="block padding">
+			<script type="text/html">
+				<div class="token"><span class="gray">@(API Token):</span> <span class="monospace b">******</span><b class="monospace hidden badge badge-gray badge-large">{{ value }}</b></div>
+				<div class="fs12" style="border-top:1px solid #E0E0E0;padding-top:10px;margin-top:10px">
+					<span class="exec link" data-exec="?/copy"><i class="ti ti-copy mr5"></i>@(Copy token)</span>
+					<span class="exec link ml10 copy" data-exec="?/show"><i class="ti ti-eye mr5"></i>@(Show token)</span>
+				</div>
+			</script>
+		</ui-bind>
+		<div class="padding bg-smoke">
+			<ui-bind path="?.token" config="hide" class="block">
+				<p>@(You can copy the token after the token is created.)</p>
+			</ui-bind>
+			<ui-component name="input" path="?.name" config="required:1" class="m">@(App name)</ui-component>
+			<ui-component name="input" path="?.isbanned" config="type:checkbox">@(Ban token)</ui-component>
+		</div>
+		<div class="padding">
+			<ui-component name="input" path="?.permissions" config="dirraw:1;dirsource:pluginapi.permissions;multiple:1;placeholder:@(Choose a permission)" default="[]">@(Permissions)</ui-component>
+			<div class="help m">@(Permissions can limit functionality.)</div>
+			<ui-component name="input" path="?.summary">@(Summary)</ui-component>
+			<div class="help">@(You can describe more information about the token, such as who the user is and where they are located.)</div>
+		</div>
+	</div>
+	<nav>
+		<ui-component name="validate" path="?">
+			<button name="submit" disabled><i class="ti ti-check-circle"></i>@(SUBMIT)</button>
+			<button name="cancel">@(Cancel)</button>
+		</ui-component>
+	</nav>
+</ui-component>
+
+<script>
+
+	PLUGIN(function(exports) {
+
+		exports.reload = function(com) {
+			let model = exports.model;
+			let id = model ? model.id : null;
+			com.reconfigure({ title: id ? '@(Update API token)' : '@(Create API token)' });
+		};
+
+		exports.submit = function(hide) {
+			let form = exports.form;
+			exports.tapi('APIToken|save @showloading ERROR', form, function() {
+				form.callback && form.callback();
+				hide();
+			});
+		};
+
+		exports.show = function(el) {
+			let target = el.closest('ui-bind').find('.token');
+			target.find('span.monospace').remove();
+			target.find('b').rclass('hidden');
+			el.remove();
+		};
+
+		exports.copy = function(el) {
+			let model = exports.model;
+			SETTER('clipboard/copy @copied', location.origin + '/upload/{db}/?token=' + model.token);
+		};
+
+	});
+
+</script>

@@ -1,0 +1,126 @@
+<style>
+	.CLASS .listing2 figure { margin-bottom: var(--gap); }
+	.CLASS .listing2 figure > section { padding :15px; }
+	.CLASS .listing2 figure:hover { opacity: 0.8; }
+	.CLASS .listing2 figure .help { color: rgba(0,0,0,0.5); }
+	.CLASS .listing2 figure.selected { background-color: #FFFED1; }
+	.CLASS .controls { float: right; margin-right: 0; }
+</style>
+
+<ui-plugin class="CLASS">
+
+	<div class="toolbar pin">
+		<button class="exec" data-exec="?/create"><i class="ti ti-plus-circle green mr5"></i>@(Create)</button>
+		<button class="exec" data-exec="?/refresh"><i class="ti ti-sync mr5"></i>@(Refresh)</button>
+	</div>
+
+	<ui-component name="viewbox" path="*page" config="parent:window;margin:60">
+		<ui-component name="empty" path="?.items" config="parent:window;margin:62">
+			<script type="text/html">
+				@(You don't have defined any API tokens.)
+			</script>
+			<div class="padding">
+				<label class="b block m"><i class="ti ti-network-alt mr5"></i>@(API Tokens)</label>
+				<ui-bind path="?.items" config="template" class="listing2 grid-4">
+					<script type="text/html">
+						{{ foreach m in value }}
+						<figure class="exec" data-exec="?/edit" data-id="{{ m.id }}">
+							<section>
+								<span class="exec controls" data-exec="?/menu" data-prevent="true"><i class="ti ti-ellipsis-h"></i></span>
+								<div>{{ m.name }}</div>
+								<div class="help nmt">{{ m.dtlogged | format('[ts]') | empty }}{{ if m.logged }} ({{ m.logged }}x){{ fi }}{{ if m.summary }} {{ m.summary | empty }}{{ fi }}</div>
+							</section>
+						</figure>
+						{{ end }}
+					</script>
+				</ui-bind>
+			</div>
+		</ui-component>
+	</ui-component>
+
+</ui-plugin>
+
+<ui-component name="importer" path="*form" config="if:formCLASS;url:/~ID~/form.html"></ui-component>
+
+<script>
+
+	PLUGIN(function(exports) {
+
+		exports.reload = function() {
+			BREADCRUMB.add('@(API Tokens)', NAV.url);
+			exports.tapi('APIToken|permissions @showloading', function(response) {
+
+				for (let m of response) {
+					if (m.id.includes('@'))
+						m.name = '<b>' + m.name.encode() + '</b>';
+				}
+
+				exports.set('permissions', response);
+				exports.refresh();
+			});
+		};
+
+		exports.refresh = function() {
+			exports.tapi('APIToken|list @showloading', 'items @hideloading');
+		};
+
+		exports.create = function() {
+			let path = exports.format('form{0}');
+			let model = {};
+			model.callback = exports.refresh;
+			SET(path + ' @default', model);
+			SET('*form', path);
+		};
+
+		exports.edit = function(el) {
+			let id = ATTRD(el);
+			exports.tapi('APIToken|read @showloading ERROR', { id: id }, function(response) {
+				let path = exports.format('form{0}');
+				response.callback = exports.refresh;
+				SET(path + ' @reset', response);
+				SET('*form @hideloading', path);
+			});
+		};
+
+		exports.remove = function(el) {
+			let id = ATTRD(el);
+			SETTER('approve/show', '@(Are you sure you want to remove selected API token?)', ':remove: @(Remove)', function() {
+				exports.tapi('APIToken|remove @showloading ERROR', { id: id }, function() {
+					FLAGS('@removed');
+					exports.refresh();
+				});
+			});
+		};
+
+		exports.token = function(el) {
+			let id = ATTRD(el);
+			exports.tapi('APIToken|read @showloading ERROR', { id: id }, function(response) {
+				SETTER('clipboard/copy @copied', location.origin + '/upload/{db}/?token=' + response.token);
+				FLAGS('@hideloading');
+			});
+		};
+
+		exports.menu = function(el) {
+
+			let id = ATTRD(el);
+			let opt = {};
+
+			opt.element = el;
+			opt.items = [];
+			opt.items.push({ id: 'token', name: '@(Copy token)', icon: 'ti ti-copy', class: 'b' });
+			opt.items.push({ id: 'edit', name: '@(Edit)', icon: 'ti ti-pencil' });
+
+			if (id !== user.id)
+				opt.items.push({ id: 'remove', name: '@(Remove)', icon: 'ti ti-trash red' });
+
+			opt.align = 'right';
+			opt.callback = function(selected) {
+				exports[selected.id](el);
+			};
+
+			SETTER('menu/show', opt);
+		};
+
+	});
+
+</script>

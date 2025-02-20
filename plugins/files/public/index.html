@@ -1,92 +1,89 @@
 <style>
-	.CLASS .listing2 { column-gap: 7px; }
-	.CLASS .listing2 figure { margin-bottom: 7px; }
-	.CLASS .listing2 figure:hover { filter:brightness(0.9); }
-	.CLASS .controls { border-left: 1px solid rgba(0,0,0,0.1); padding: 0 8px 0 15px; line-height: 40px; height: 40px; }
-	.CLASS .icon { border-right: 1px solid rgba(0,0,0,0.1); margin-right: 8px; padding: 0 15px 0 8px; text-align: center; float: left; line-height: 40px; height: 40px; font-size: 20px; }
+	.CLASS .listing2 section > i { width: 14px; text-align: center; }
+	.CLASS .listing2 section { padding: 15px; }
 </style>
 
-<ui-plugin config="aclass:1">
+<ui-plugin class="CLASS">
 
-	<header>
-		<label><i class="ti ti-copy"></i>@(Files)</label>
-		<div class="toolbar">
-			<button class="exec" data-exec="?/refresh"><i class="ti ti-refresh"></i>@(Refresh)</button>
-		</div>
-	</header>
+	<div class="toolbar pin">
+		<button class="exec" data-exec="?/create"><i class="ti ti-plus-circle green mr5"></i>@(Create)</button>
+		<button class="exec" data-exec="?/refresh"><i class="ti ti-refresh mr5"></i>@(Refresh)</button>
+	</div>
 
-	<ui-component name="viewbox" config="parent:auto;margin:60" class="invisible">
-		<div>
-			<div class="padding">
-				<ui-component name="empty" path="?.items" config="parent:auto;margin:60">
-					<script type="text/html">
-						<div>@(The files doesn't contain any files)</div>
-					</script>
+	<div class="padding">
+		<ui-component name="empty" path="?.items" config="parent:window;margin:[margin]">
+			<script type="text/html">
+				@(You don't have file storage.)
+			</script>
 
-					<div>
-						<div class="m">
-							<div style="max-width:250px;width:100%">
-								<ui-component name="searchinput" path="?.search" config="autofocus:1;placeholder:@(Search)"></ui-component>
-							</div>
+			<ui-bind path="?.items" config="template" class="block">
+				<script type="text/html">
+					{{ if value && value.length }}
+						<div class="listing2 grid-4">
+						{{ foreach m in value }}
+						<figure class="exec" data-exec="?/browse" data-id="{{ m.name }}" style="margin-bottom:var(--margin)">
+							<section>
+								<div class="pull-right">
+									{{ if m.size }}<span class="gray mr10">{{ m.size | filesize }}</span>{{ fi }}<span class="exec red" data-exec="?/drop" data-prevent="true" title="@(Drop)"><i class="ti ti-remove"></i></span>
+								</div>
+								<i class="ti ti-database mr5"></i>{{ m.name }}
+							</section>
+						</figure>
+						{{ end }}
 						</div>
-						<div style="height:5px"></div>
-						<ui-component name="search" path="?.search" config="selector:figure;datasource:?.list">
-							<ui-bind path="?.items" config="template:figure" class="grid-4 grid-sm-2 grid-xs-1 listing2">
-								<script type="text/html">
-									{{ foreach m in value }}
-										<figure class="exec" data-exec="?/detail" data-id="{{ m.id }}" data-search="{{ m.name }}">
-											<section>
-												<div class="pull-right controls">
-													<span class="exec" data-exec="?/remove" data-prevent="true"><i class="ti ti-trash red"></i></span>
-												</div>
-												<div class="icon">
-													<i class="ti ti-database-alt"></i>
-												</div>
-												<div>{{ m.name }}</div>
-												<div class="fs12 gray">@(Size:) <b>{{ m.size | filesize }}</b></div>
-											</section>
-										</figure>
-									{{ end }}
-								</script>
-							</ui-bind>
-						</ui-component>
 					</div>
-				</ui-component>
-			</div>
-		</div>
-	</ui-component>
+					{{ fi }}
+				</script>
+			</ui-bind>
+		</ui-component>
+	</div>
 
 </ui-plugin>
 
-<ui-component name="importer" path="common.form" config="if:formlogs;url:@{#}/~ID~/forms/logs.html"></ui-component>
-<ui-component name="importer" path="common.form" config="if:formdetail;url:@{#}/~ID~/forms/detail.html"></ui-component>
-
 <script>
+
 	PLUGIN(function(exports) {
 
-		exports.reload = function() {
+		exports.reload = function(id) {
+			BREADCRUMB.add('@(File storage)', NAV.url);
 			exports.refresh();
 		};
 
-		exports.detail = function(el) {
-			SET('formdetail', { id: ATTRD(el), items: null });
-			SET('common.form', 'formdetail');
+		exports.refresh = function(el) {
+			el && el instanceof jQuery && el.find('i').aclass('ti-spin').rclass('ti-spin', 800);
+			exports.tapi('Files|databases @showloading', 'items @hideloading');
 		};
 
-		exports.remove = function(el) {
-			var model = exports.model;
-			var id = ATTRD(el);
+		exports.browse = function(el) {
+			let id = ATTRD(el);
+			SET('*form3', 'formfiles');
+			EXEC('formfiles/init @important', { id: id });
+		};
 
-			EXEC('-approve/show', '@(Are you sure you want to drop the <b>"{0}"</b> storage?)'.format(id), '"ti ti-trash" @(Remove)', function() {
-				exports.tapi('files_drop/{0} @showloading ERROR'.format(id), function() {
-					exports.refresh();
-					EXEC('-notify/success @hideloading', '@(The storage has been dropped successfully.)');
-				});
+		exports.drop = function(el) {
+			let id = ATTRD(el);
+			SETTER('approve/show', '@(Are you sure you drop selected file storage "{0}"?)'.format(id.encode()), ':ti ti-remove: @(Remove)', function() {
+				exports.tapi('Files|drop @showloading ERROR', { db: id }, exports.refresh);
 			});
 		};
 
-		exports.refresh = function() {
-			exports.tapi('files_databases ERROR', 'items');
+		exports.create = function() {
+
+			let opt = {};
+			opt.name = '@(Storage name)';
+			opt.summary = '@(Enter a file storage name)';
+			opt.value = 'photos';
+			opt.newbie = true;
+			opt.centered = true;
+			opt.callback = function(value) {
+				value = value.slug().trim().replace(/-/g, '');
+				setTimeout(function() {
+					SETTER('approve/show', '@(The file storage name will be "{0}". Are you satisfied with that?)'.format(value.encode()), ':ti ti-check-circle: @(Confirm)', function() {
+						exports.tapi('Files|create @showloading ERROR', { name: value }, exports.refresh);
+					});
+				}, 1000);
+			};
+			SETTER('prompt/show', opt);
 		};
 
 	});

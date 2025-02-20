@@ -1,2 +1,7 @@
-name              : OpenFiles
-calculatesize     : true
+name                  : OpenFiles
+app                   : openfiles
+icon                  : ti ti-copy
+cdn                   : https://cdn.componentator.com
+$api                  : /api/
+$insecure             : true
+// database              : postgres://user:password@localhost/database

@@ -1,56 +1,70 @@
 exports.icon = 'ti ti-copy';
-exports.name = '@(Files)';
+exports.name = '@(File Storage)';
 exports.position = 1;
 exports.permissions = [{ id: 'files', name: 'Files' }];
 exports.visible = user => user.sa || user.permissions.includes('files');
+exports.visible = () => true;
+exports.hidden = false;
+exports.import = 'extensions.html';
 
 exports.install = function() {
 
-	// Public API
-	ROUTE('+POST    /base64/{db}/',      upload_base64, 1024 * 10);        // max.  10 MB
-	ROUTE('+POST    /upload/{db}/',      upload, ['upload'], 1024 * 100);  // max. 100 MB
-	ROUTE('+POST    /files/{db}/',       upload, ['upload'], 1024 * 100);  // max. 100 MB
-	ROUTE('+POST    /url/{db}/',         upload_url);
-	ROUTE('+GET     /files/{db}/         *Files --> list');
-	ROUTE('+GET     /files/{db}/{id}/    *Files --> read');
-	ROUTE('+POST    /files/{db}/{id}/    *Files --> update');
-	ROUTE('+DELETE  /files/{db}/{id}/    *Files --> remove');
+	CORS();
 
-	FILE('/files/*.*', files);
+	// REST API
+	ROUTE('+POST    /base64/{db}/  <10MB', upload_base64);
+	ROUTE('+POST    /upload/{db}/  <100MB @upload', upload);
+	ROUTE('+POST    /files/{db}/   <100MB @upload', upload);
+	ROUTE('+POST    /url/{db}/', upload_url);
+	ROUTE('+GET     /files/{db}/         --> Files|API|list');
+	ROUTE('+GET     /files/{db}/{id}/    --> Files|API|read');
+	ROUTE('+POST    /files/{db}/{id}/    --> Files|API|update');
+	ROUTE('+DELETE  /files/{db}/{id}/    --> Files|API|remove');
 
-	// Internal
-	ROUTE('+API    /api/    -files_browse/{db}         *Files   --> list');
-	ROUTE('+API    /api/    -files_read/{db}/{id}      *Files   --> read');
-	ROUTE('+API    /api/    +files_update/{db}/{id}    *Files   --> update');
-	ROUTE('+API    /api/    -files_remove/{db}/{id}    *Files   --> remove');
-	ROUTE('+API    /api/    -files_databases           *Files   --> databases');
-	ROUTE('+API    /api/    -files_drop/{db}           *Files   --> drop');
-
+	// Public
+	ROUTE('FILE     /files/*', files);
 };
+
+ON('configure', async function() {
+	if (CONF.database) {
+		let tbl_file = await DATA.check('information_schema.tables').where('table_schema', 'public').where('table_name', 'tbl_file').promise();
+		if (!tbl_file) {
+			let sql = await Total.readfile(PATH.plugins('files/init.sql'), 'utf8');
+			await DATA.query(sql).promise();
+		}
+	}
+});
 
 const IMAGES = { jpg: 1, png: 1, jpeg: 1, gif: 1 };
 
-function upload(db) {
+function checksum(id) {
+	var sum = 0;
+	for (var i = 0; i < id.length; i++)
+		sum += id.charCodeAt(i);
+	return sum.toString(36);
+}
 
-	var self = this;
+function upload($) {
 
-	if (!self.user.sa && (!self.user.allow_upload || (self.user.databases && self.user.databases.length && !self.user.databases.includes(db)))) {
-		self.status = 401;
-		self.invalid('Not allowed');
+	let user = $.user;
+	let db = $.params.db;
+
+	if (!user.sa && (!user.permissions.includes('upload') || !user.permissions.includes('@' + db))) {
+		$.response.status = 401;
+		$.invalid('Not allowed');
 		return;
 	}
 
 	var output = [];
 
-	self.files.wait(function(file, next) {
+	$.files.wait(function(file, next) {
 
-		var obj = {};
+		let obj = {};
 
-		obj.id = self.query.id || self.body[file.name + '_id'] || UID();
+		obj.id = $.query.id || $.body[file.name + '_id'] || UID();
 		obj.name = file.filename;
 		obj.size = file.size;
 		obj.type = file.type;
-
 		obj.width = file.width;
 		obj.height = file.height;
 		obj.ext = file.extension;
@@ -60,51 +74,70 @@ function upload(db) {
 			return;
 		}
 
-		file.fs(db, obj.id, next);
+		file.fs(db, obj.id, function() {
 
-		var url = '/files/' + db + '/' + obj.id + '-' + FUNC.checksum(obj.id) + '.' + file.extension;
-		obj.url = self.query.hostname ? self.hostname(url) : url;
-		output.push(obj);
+			obj.url = '/files/' + db + '/' + obj.id + '-' + checksum(obj.id) + '.' + file.extension;
+
+			if (CONF.database) {
+				let row = {};
+				row.id = obj.id;
+				row.db = db;
+				row.width = obj.width;
+				row.height = obj.height;
+				row.size = obj.size;
+				row.type = obj.type;
+				row.name = obj.name;
+				row.ext = obj.ext;
+				row.createdby = $.user.name;
+				DATA.insert('tbl_file', row);
+			}
+
+			if ($.query.hostname)
+				obj.url = $.hostname(obj.url);
+
+			output.push(obj);
+			next();
+		});
 
 	}, function() {
-
-		self.json(output.length > 1 ? output : output[0]);
-
+		$.json(output.length > 1 ? output : output[0]);
 	});
 }
 
-function upload_base64(db) {
+function upload_base64($) {
 
-	var self = this;
+	let user = $.user;
+	let db = $.params.db;
 
-	if (!self.user.sa && (!self.user.allow_upload || (self.user.databases && self.user.databases.length && !self.user.databases.includes(db)))) {
-		self.status = 401;
-		self.invalid('Not allowed');
+	if (!user.sa && (!user.permissions.includes('upload') || !user.permissions.includes('@' + db))) {
+		$.response.status = 401;
+		$.invalid('Not allowed');
 		return;
 	}
 
-	var name = self.body.filename || self.body.name;
+	let body = $.body;
+	let name = body.filename || body.name;
+
 	if (!name) {
-		self.invalid('Invalid file name');
+		$.invalid('Invalid file name');
 		return;
 	}
 
-	var file = self.body.file || self.body.data;
-
-	var type = file.base64ContentType();
+	let file = body.file || body.data;
+	let type = file.base64ContentType();
 	if (!type) {
-		self.invalid('Invalid file type');
+		$.invalid('Invalid file type');
 		return;
 	}
 
-	var buffer = file.base64ToBuffer();
+	let buffer = file.base64ToBuffer();
 	if (!buffer) {
-		self.invalid('Invalid file data');
+		$.invalid('Invalid file data');
 		return;
 	}
 
-	var obj = {};
-	obj.id = self.body.id || self.query.id || UID();
+	let obj = {};
+	obj.id = body.id || $.query.id || UID();
 	obj.name = name;
 	obj.size = buffer.length;
 	obj.type = type;
@@ -114,38 +147,54 @@ function upload_base64(db) {
 
 		obj.width = meta.width;
 		obj.height = meta.height;
+		obj.url = '/files/' + db + '/' + obj.id + '-' + checksum(obj.id) + '.' + obj.ext;
 
-		var url = '/files/' + db + '/' + obj.id + '-' + FUNC.checksum(obj.id) + '.' + obj.ext;
-		obj.url = self.query.hostname ? self.hostname(url) : url;
+		if (CONF.database) {
+			let row = {};
+			row.id = obj.id;
+			row.db = db;
+			row.width = obj.width;
+			row.height = obj.height;
+			row.size = meta.size;
+			row.type = obj.type;
+			row.name = obj.name;
+			row.ext = obj.ext;
+			row.createdby = $.user.name;
+			DATA.insert('tbl_file', row);
+		}
 
-		self.json(obj);
+		if ($.query.hostname)
+			obj.url = $.hostname(obj.url);
+
+		$.json(obj);
 	});
 }
 
-function upload_url(db) {
+function upload_url($) {
 
-	var self = this;
+	let user = $.user;
+	let db = $.params.db;
 
-	if (!self.user.sa && (!self.user.allow_upload || (self.user.databases && self.user.databases.length && !self.user.databases.includes(db)))) {
-		self.status = 401;
-		self.invalid('Not allowed');
+	if (!user.sa && (!user.permissions.includes('upload') || !user.permissions.includes('@' + db))) {
+		$.response.status = 401;
+		$.invalid('Not allowed');
 		return;
 	}
 
-	var file = self.body;
+	var file = $.body;
 	var name = file.filename || file.name;
 	if (!name) {
-		self.invalid('Invalid file name');
+		$.invalid('Invalid file name');
 		return;
 	}
 
 	if (!file.url) {
-		self.invalid('Invalid file url');
+		$.invalid('Invalid file url');
 		return;
 	}
 
 	var obj = {};
-	obj.id = file.id || self.query.id || UID();
+	obj.id = file.id || $.query.id || UID();
 	obj.name = name;
 	obj.ext = U.getExtension(name);
 
@@ -154,31 +203,315 @@ function upload_url(db) {
 		obj.type = meta.type || U.getContentType(obj.ext);
 		obj.width = meta.width;
 		obj.height = meta.height;
+		obj.url = '/files/' + db + '/' + obj.id + '-' + checksum(obj.id) + '.' + obj.ext;
 
-		var url = '/files/' + db + '/' + obj.id + '-' + FUNC.checksum(obj.id) + '.' + obj.ext;
-		obj.url = self.query.hostname ? self.hostname(url) : url;
+		if (CONF.database) {
+			let row = {};
+			row.id = obj.id;
+			row.db = db;
+			row.width = obj.width;
+			row.height = obj.height;
+			row.size = meta.size;
+			row.type = obj.type;
+			row.name = obj.name;
+			row.ext = obj.ext;
+			row.createdby = $.user.name;
+			DATA.insert('tbl_file', row);
+		}
 
-		self.json(obj);
+		if ($.query.hostname)
+			obj.url = $.hostname(obj.url);
+
+		$.json(obj);
 	});
 }
 
-function files(req, res) {
+function files($) {
 
-	if (req.split.length !== 3) {
-		res.throw404();
+	if ($.split.length !== 3) {
+		$.invalid(404);
 		return;
 	}
 
-	var db = req.split[1];
-	var id = req.split[2];
+	var db = $.split[1];
+	var id = $.split[2];
 
 	id = id.substring(0, id.lastIndexOf('.'));
 
 	var arr = id.split('-');
 
-	if (FUNC.checksum(arr[0]) === arr[1])
-		res.filefs(db, arr[0], req.query.download === '1');
+	if (checksum(arr[0]) === arr[1])
+		$.filefs(db, arr[0], $.query.download === '1');
 	else
-		res.throw404();
-
+		$.invalid(404);
 }
+
+NEWACTION('Files|databases', {
+	name: 'List of databases',
+	route: '+API ?',
+	user: true,
+	permissions: 'files',
+	action: function($) {
+		Total.Fs.readdir(PATH.databases(), function(err, items) {
+
+			let arr = [];
+
+			for (let item of items) {
+				if (item.substring(0, 3) === 'fs-') {
+					let name = item.substring(3);
+					arr.push({ id: name, name: name });
+				}
+			}
+
+			arr.wait(function(item, next) {
+
+				let dir = PATH.databases('fs-' + item.id);
+				SHELL('du -hsb ' + dir, function(err, response) {
+					if (response)
+						response = +response.split(/\t|\s/)[0];
+					item.size = response;
+					next();
+				});
+
+			}, () => $.callback(arr));
+
+		});
+	}
+});
+
+NEWACTION('Files|API|list', {
+	name: 'List of files',
+	params: '*db',
+	user: true,
+	action: function($) {
+		$.action('Files|list', $.params).callback($);
+	}
+});
+
+NEWACTION('Files|API|read', {
+	name: 'List of files',
+	params: '*db,*id',
+	user: true,
+	action: function($) {
+		$.action('Files|read', $.params).callback($);
+	}
+});
+
+NEWACTION('Files|list', {
+	name: 'List of files',
+	route: '+API ?',
+	input: '*db',
+	user: true,
+	permissions: 'files',
+	action: function($, model) {
+
+		if (!$.user.sa && $.user.databases && !$.user.databases[model.db]) {
+			$.invalid(401);
+			return;
+		}
+
+		var builder = CONF.database ? DATA.list('tbl_file') : FILESTORAGE(model.db).browse();
+
+		builder.autoquery($.query, 'id,name,width:Number,height:Number,date:Date,size:Number,type,ext', 'date_desc', 1000);
+
+		if (CONF.database)
+			builder.where('db', model.db);
+		else
+			builder.where('removed', '<>', true);
+
+		builder.callback($.successful(function(response) {
+
+			var hostname = $.query.hostname === '1' ? $.controller.hostname() : '';
+
+			if (response instanceof Array)
+				response = { items: response, page: 1, count: response.length, pages: 1, limit: response.length };
+
+			for (var item of response.items) {
+				if (!item.removed)
+					item.url = hostname + '/files/' + model.db + '/' + item.id + '-' + checksum(item.id) + '.' + item.ext;
+			}
+
+			$.callback(response);
+		}));
+	}
+});
+
+NEWACTION('Files|insert', {
+	name: 'Insert a file',
+	query: 'name',
+	input: 'name,data:DataURI',
+	user: true,
+	action: function($, model) {
+		var response = [];
+
+		// Base64
+		if (model.data) {
+
+			var data = model.data;
+			var ext;
+
+			switch (data.type) {
+				case 'image/png':
+					ext = 'png';
+					break;
+				case 'image/jpeg':
+					ext = 'jpg';
+					break;
+				case 'image/gif':
+					ext = 'gif';
+					break;
+				default:
+					$.callback(response);
+					return;
+			}
+
+			let meta = {};
+			meta.id = UID();
+			meta.size = data.buffer.length;
+			meta.type = data.type;
+			meta.ext = ext;
+			meta.name = (model.name || $.query.name || (U.random_string(10) + '_base64')).replace(/\.[0-9a-z]+$/i, '').max(40) + '.' + ext;
+			meta.url = '/download/' + meta.id + '.' + meta.ext;
+
+			FILESTORAGE('files').save(meta.id, meta.name, data.buffer, { public: 1 }, async function(err, output) {
+				let file = { id: output.id, type: output.type, ext: output.ext, name: output.name, url: meta.url, width: output.width, height: output.height, size: output.size, createdby: $.user.name };
+				await DATA.insert('tbl_file', file).promise();
+				file.dtcreated = NOW;
+				response.push(file);
+				$.callback(file);
+			});
+
+		} else {
+
+			$.files.wait(function(file, next) {
+				file.md5(async function(err, checksum) {
+
+					let db = await DATA.read('tbl_file').id(checksum).promise();
+					if (db) {
+						response.push(db);
+						next();
+						return;
+					}
+
+					let meta = {};
+					// meta.id = UID();
+					meta.id = checksum;
+					meta.checksum = checksum;
+					meta.name = file.filename;
+					meta.type = file.type;
+					meta.ext = file.ext;
+					meta.size = file.size;
+					meta.url = '/download/' + meta.id + '.' + meta.ext;
+
+					file.fs('files', meta.id, { public: 1 }, async function(err, output) {
+						let file = { id: output.id, type: output.type, ext: output.ext, name: output.name, url: meta.url, width: output.width, height: output.height, size: output.size, createdby: $.user.name };
+						await DATA.insert('tbl_file', file, true).id(meta.id).promise();
+						file.dtcreated = NOW;
+						response.push(file);
+						next();
+					});
+
+				});
+			}, () => $.callback(response));
+		}
+	}
+});
+
+NEWACTION('Files|rename', {
+	name: 'Rename a file',
+	input: '*db,*id,*name',
+	route: '+API ?',
+	user: true,
+	permissions: 'files',
+	action: async function($, model) {
+
+		if (CONF.database)
+			await DATA.modify('tbl_file', { name: model.name }).id(model.id).where('db', model.db).error(404).promise($);
+
+		FILESTORAGE(model.db).rename(model.id, model.name, $.done(model.id));
+	}
+});
+
+NEWACTION('Files|clear', {
+	name: 'Clear files',
+	route: '+API ?',
+	input: '*db',
+	user: true,
+	permissions: 'files',
+	action: function($, model) {
+		CONF.database && DATA.remove('tbl_file').where('db', model.db);
+		FILESTORAGE(model.db).clear($.done());
+	}
+});
+
+NEWACTION('Files|create', {
+	name: 'Create storage',
+	route: '+API ?',
+	input: '*name:lowercase',
+	user: true,
+	permissions: 'files',
+	action: function($, model) {
+		model.name = model.name.slug();
+		let fs = FILESTORAGE(model.name);
+		PATH.mkdir(fs.directory);
+		$.success(model.name);
+	}
+});
+
+NEWACTION('Files|remove', {
+	name: 'Remove a file',
+	input: '*db,*id',
+	route: '+API ?',
+	user: true,
+	permissions: 'files',
+	action: async function($, model) {
+
+		if (!$.user.sa && (!$.user.permissions.includes('remove') || !$.user.permissions.includes('@' + db))) {
+			$.invalid(401);
+			return;
+		}
+
+		if (CONF.database)
+			await DATA.remove('tbl_file').id(model.id).where('db', model.db).error(404).promise($);
+
+		FILESTORAGE(model.db).remove(model.id, $.done());
+	}
+});
+
+NEWACTION('Files|read', {
+	name: 'Remove a file',
+	input: '*db,*id',
+	route: '+API ?',
+	sa: true,
+	action: function($, model) {
+
+		FILESTORAGE(model.db).read(model.id, function(err, response) {
+
+			if (err) {
+				$.invalid(404);
+				return;
+			}
+
+			response.url = ($.query.hostname ? $.controller.hostname() : '') + '/files/' + model.db + '/' + model.id + '-' + checksum(model.id) + '.' + response.ext;
+			$.callback(response);
+
+		}, true);
+	}
+});
+
+NEWACTION('Files|drop', {
+	name: 'Drop FileStorage',
+	input: '*db',
+	route: '+API ?',
+	sa: true,
+	action: function($, model) {
+
+		if (!$.user.sa) {
+			$.invalid(401);
+			return;
+		}
+
+		CONF.database && DATA.remove('tbl_file').where('db', model.db);
+		FILESTORAGE(model.db).drop(() => Total.Fs.rmdir(PATH.databases('fs-' + model.db), $.done(model.db)));
+	}
+});
