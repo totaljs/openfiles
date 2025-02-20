@@ -25,12 +25,18 @@ exports.install = function() {
 	ROUTE('FILE     /files/*', files);
 };
 
+var Table = 'tbl_file';
+
 ON('configure', async function() {
+
+	if (CONF.tbl_file)
+		Table = CONF.tbl_file;
+
 	if (CONF.database) {
-		let tbl_file = await DATA.check('information_schema.tables').where('table_schema', 'public').where('table_name', 'tbl_file').promise();
+		let tbl_file = await DATA.check('information_schema.tables').where('table_schema', 'public').where('table_name', Table).promise();
 		if (!tbl_file) {
 			let sql = await Total.readfile(PATH.plugins('files/init.sql'), 'utf8');
-			await DATA.query(sql).promise();
+			await DATA.query(sql.replace(Table)).promise();
 		}
 	}
 });
@@ -89,7 +95,7 @@ function upload($) {
 				row.name = obj.name;
 				row.ext = obj.ext;
 				row.createdby = $.user.name;
-				DATA.insert('tbl_file', row);
+				DATA.insert(Table, row);
 			}
 
 			if ($.query.hostname)
@@ -160,7 +166,7 @@ function upload_base64($) {
 			row.name = obj.name;
 			row.ext = obj.ext;
 			row.createdby = $.user.name;
-			DATA.insert('tbl_file', row);
+			DATA.insert(Table, row);
 		}
 
 		if ($.query.hostname)
@@ -216,7 +222,7 @@ function upload_url($) {
 			row.name = obj.name;
 			row.ext = obj.ext;
 			row.createdby = $.user.name;
-			DATA.insert('tbl_file', row);
+			DATA.insert(Table, row);
 		}
 
 		if ($.query.hostname)
@@ -310,7 +316,7 @@ NEWACTION('Files|list', {
 			return;
 		}
 
-		var builder = CONF.database ? DATA.list('tbl_file') : FILESTORAGE(model.db).browse();
+		var builder = CONF.database ? DATA.list(Table) : FILESTORAGE(model.db).browse();
 
 		builder.autoquery($.query, 'id,name,width:Number,height:Number,date:Date,size:Number,type,ext', 'date_desc', 1000);
 
@@ -375,7 +381,7 @@ NEWACTION('Files|insert', {
 
 			FILESTORAGE('files').save(meta.id, meta.name, data.buffer, { public: 1 }, async function(err, output) {
 				let file = { id: output.id, type: output.type, ext: output.ext, name: output.name, url: meta.url, width: output.width, height: output.height, size: output.size, createdby: $.user.name };
-				await DATA.insert('tbl_file', file).promise();
+				await DATA.insert(Table, file).promise();
 				file.dtcreated = NOW;
 				response.push(file);
 				$.callback(file);
@@ -386,7 +392,7 @@ NEWACTION('Files|insert', {
 			$.files.wait(function(file, next) {
 				file.md5(async function(err, checksum) {
 
-					let db = await DATA.read('tbl_file').id(checksum).promise();
+					let db = await DATA.read(Table).id(checksum).promise();
 					if (db) {
 						response.push(db);
 						next();
@@ -405,7 +411,7 @@ NEWACTION('Files|insert', {
 
 					file.fs('files', meta.id, { public: 1 }, async function(err, output) {
 						let file = { id: output.id, type: output.type, ext: output.ext, name: output.name, url: meta.url, width: output.width, height: output.height, size: output.size, createdby: $.user.name };
-						await DATA.insert('tbl_file', file, true).id(meta.id).promise();
+						await DATA.insert(Table, file, true).id(meta.id).promise();
 						file.dtcreated = NOW;
 						response.push(file);
 						next();
@@ -426,7 +432,7 @@ NEWACTION('Files|rename', {
 	action: async function($, model) {
 
 		if (CONF.database)
-			await DATA.modify('tbl_file', { name: model.name }).id(model.id).where('db', model.db).error(404).promise($);
+			await DATA.modify(Table, { name: model.name }).id(model.id).where('db', model.db).error(404).promise($);
 
 		FILESTORAGE(model.db).rename(model.id, model.name, $.done(model.id));
 	}
@@ -439,7 +445,7 @@ NEWACTION('Files|clear', {
 	user: true,
 	permissions: 'files',
 	action: function($, model) {
-		CONF.database && DATA.remove('tbl_file').where('db', model.db);
+		CONF.database && DATA.remove(Table).where('db', model.db);
 		FILESTORAGE(model.db).clear($.done());
 	}
 });
@@ -472,7 +478,7 @@ NEWACTION('Files|remove', {
 		}
 
 		if (CONF.database)
-			await DATA.remove('tbl_file').id(model.id).where('db', model.db).error(404).promise($);
+			await DATA.remove(Table).id(model.id).where('db', model.db).error(404).promise($);
 
 		FILESTORAGE(model.db).remove(model.id, $.done());
 	}
@@ -511,7 +517,7 @@ NEWACTION('Files|drop', {
 			return;
 		}
 
-		CONF.database && DATA.remove('tbl_file').where('db', model.db);
+		CONF.database && DATA.remove(Table).where('db', model.db);
 		FILESTORAGE(model.db).drop(() => Total.Fs.rmdir(PATH.databases('fs-' + model.db), $.done(model.db)));
 	}
 });
