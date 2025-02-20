@@ -9,8 +9,8 @@ cp -a ../public/ public
 cp -a ../views/ views
 
 # cd ..
-total4 --bundle app.bundle
-cp app.bundle ../app.bundle
+total5 --bundle app.bundle
+cp app.bundle ../--bundles--/app.bundle
 
 cd ..
 rm -rf .bundle
