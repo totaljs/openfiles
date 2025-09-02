@@ -36,7 +36,7 @@ ON('configure', async function() {
 		let tbl_file = await DATA.check('information_schema.tables').where('table_schema', 'public').where('table_name', Table).promise();
 		if (!tbl_file) {
 			let sql = await Total.readfile(PATH.plugins('files/init.sql'), 'utf8');
-			await DATA.query(sql.replace(Table)).promise();
+			await DATA.query(sql.format(Table)).promise();
 		}
 	}
 });

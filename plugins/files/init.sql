@@ -1,4 +1,4 @@
-CREATE TABLE "public"."tbl_file" (
+CREATE TABLE "public"."{0}" (
 	"id" text NOT NULL,
 	"db" text,
 	"name" text,
