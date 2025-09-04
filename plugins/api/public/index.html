@@ -50,10 +50,8 @@
 			BREADCRUMB.add('@(API Tokens)', NAV.url);
 			exports.tapi('APIToken|permissions @showloading', function(response) {
 
-				for (let m of response) {
-					if (m.id.includes('@'))
-						m.name = '<b>' + m.name.encode() + '</b>';
-				}
+				for (let m of response)
+					m.name = '<span class="mr5 badge badge-' + (m.id.includes('@') ? 'color' : 'red') + '">' + m.name.encode() + '</span>';
 
 				exports.set('permissions', response);
 				exports.refresh();
