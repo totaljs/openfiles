@@ -1,5 +1,6 @@
 <ui-component name="box" path="*form3" config="if:CLASS;icon:ti ti-copy;title:@(List of files);width:940;zindex:50;scrollbar:0" class="hidden CLASS" plugin="CLASS">
 	<nav>
+		<button class="exec" data-exec="?/upload"><i class="ti ti-upload"></i>@(Upload)</button>
 		<button class="exec" data-exec="?/refresh"><i class="ti ti-refresh"></i>@(Refresh)</button>
 	</nav>
 	<div>
@@ -99,7 +100,7 @@
 			if (e && !(e instanceof jQuery))
 				opt.files = e;
 
-			opt.url = ENV('upload');
+			opt.url = ENV('upload2').format(meta.id);
 			opt.multiple = true;
 			opt.width = meta.width;
 			opt.height = meta.height;

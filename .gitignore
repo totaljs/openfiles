@@ -1,0 +1,9 @@
+/index.js.json
+/logs/
+/tmp/
+/.DS_Store
+/index.js.map
+/node_modules/
+/package-lock.json
+/databases/
+/index.pid
